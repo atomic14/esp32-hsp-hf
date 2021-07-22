@@ -1,0 +1,226 @@
+<html>
+  <head>
+    <style>
+      body {
+        background-color: #010110;
+        display: flex;
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        margin: 0px;
+        padding: 0px;
+      }
+      button {
+        padding: 10px;
+        font-size: 20px;
+        margin-left: 10px;
+        margin-right: 10px;
+      }
+      #button-row {
+        z-index: 10;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+      #container {
+        padding: 50px;
+        position: absolute;
+        top: 0px;
+        bottom: 0px;
+        left: 0px;
+        right: 0px;
+      }
+      #meter {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="button-row">
+      <button onclick="startStreaming(true)">Analyze Only</button>
+      <button onclick="startStreaming(false)">Play Audio</button>
+    </div>
+    <div id="container">
+      <canvas id="meter"></canvas>
+    </div>
+
+    <script>
+      class FrequencyScope {
+        constructor(fftNode) {
+          this.draw = this.draw.bind(this);
+          this.resizeCanvasToDisplaySize =
+            this.resizeCanvasToDisplaySize.bind(this);
+          this.canvas = document.getElementById("meter");
+          this.ctx = this.canvas.getContext("2d");
+          this.fftNode = fftNode;
+          this.bufferLength = this.fftNode.frequencyBinCount;
+          this.dataArray = new Uint8Array(this.bufferLength);
+          this.maxValues = new Uint8Array(this.bufferLength);
+        }
+        resizeCanvasToDisplaySize() {
+          // see https://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+          // Lookup the size the browser is displaying the canvas in CSS pixels.
+          const displayWidth = this.canvas.clientWidth;
+          const displayHeight = this.canvas.clientHeight;
+
+          // Check if the canvas is not the same size.
+          const needResize =
+            this.canvas.width !== displayWidth ||
+            this.canvas.height !== displayHeight;
+
+          if (needResize) {
+            // Make the canvas the same size
+            this.canvas.width = displayWidth;
+            this.canvas.height = displayHeight;
+          }
+        }
+        draw() {
+          requestAnimationFrame(this.draw);
+          this.resizeCanvasToDisplaySize();
+          const width = this.canvas.width;
+          const height = this.canvas.height;
+          this.fftNode.getByteFrequencyData(this.dataArray);
+          this.ctx.fillStyle = "#010110";
+          this.ctx.fillRect(0, 0, width, height);
+
+          var barWidth = Math.max(1, width / this.bufferLength);
+          var barHeight;
+          var x = 0;
+          for (var i = 0; i < this.bufferLength; i++) {
+            barHeight = this.dataArray[i];
+            if (barHeight > this.maxValues[i]) {
+              this.maxValues[i] = barHeight;
+            } else {
+              this.maxValues[i] = this.maxValues[i] * 0.999 + barHeight * 0.001;
+            }
+            const barColor = Math.max(0, 120 - barHeight / 2);
+            this.ctx.fillStyle = `hsl(${barColor}, 100%, 50%)`;
+            this.ctx.fillRect(
+              x,
+              height - (height * barHeight) / 255,
+              barWidth - 1,
+              (height * barHeight) / 255
+            );
+            const maxColor = Math.max(0, 120 - this.maxValues[i] / 2);
+            this.ctx.fillStyle = `hsl(${maxColor}, 100%, 50%)`;
+            this.ctx.fillRect(
+              x,
+              height - (height * this.maxValues[i]) / 255,
+              barWidth - 1,
+              1
+            );
+            x += barWidth;
+          }
+        }
+      }
+
+      class Player {
+        constructor(analyzeOnly = true) {
+          this.flush = this.flush.bind(this);
+          this.addSamples = this.addSamples.bind(this);
+          // create an audio context to process/play our audio
+          this.audioCtx = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          // we'll have an fft analyzer at the start of our pipeline
+          this.fftNode = this.audioCtx.createAnalyser();
+          this.fftNode.smoothingTimeConstant = 0.8;
+          this.fftNode.fftSize = 256;
+          // and we'll hook it up to our output
+          if (!analyzeOnly) {
+            this.fftNode.connect(this.audioCtx.destination);
+          }
+          // this will hold the samples that we've received from the websocket - we'll flush these out periodically
+          this.sampleBuffers = [];
+          this.totalSamples = 0;
+          // we'll use this to keep track of the current playback position
+          this.startTime = this.audioCtx.currentTime;
+          // flush the samples buffers every 200ms
+          setInterval(this.flush, 200);
+        }
+        addSamples(samples) {
+          // the samples should be signed 16 bit integers
+          const typedSamples = new Int16Array(
+            samples,
+            0,
+            Math.floor(samples.byteLength / 2)
+          );
+          // turn the samples into normlised floats
+          const float32 = new Float32Array(typedSamples.length);
+          for (let i = 0; i < typedSamples.length; i++) {
+            float32[i] = typedSamples[i] / 32768;
+          }
+          // add them our sample buffers
+          this.totalSamples += float32.length;
+          this.sampleBuffers.push(float32);
+        }
+        flush() {
+          // no samples in our buffer
+          if (this.sampleBuffers.length == 0) {
+            return;
+          }
+          // create a buffer to hold all the samples that have been captured so far
+          const bufferSource = this.audioCtx.createBufferSource();
+          const audioBuffer = this.audioCtx.createBuffer(
+            1,
+            this.totalSamples,
+            44100
+          );
+          // copy the samples into the buffer
+          let sampleIndex = 0;
+          while (this.sampleBuffers.length > 0) {
+            const buffer = this.sampleBuffers.shift();
+            const audioData = audioBuffer.getChannelData(0);
+            for (let i = 0; i < buffer.length; i++) {
+              audioData[sampleIndex] = buffer[i];
+              sampleIndex++;
+            }
+          }
+          // we've processed all the samples
+          this.totalSamples = 0;
+          // check to see if we've fallen behind the total duration of the audio
+          if (this.startTime < this.audioCtx.currentTime) {
+            this.startTime = this.audioCtx.currentTime;
+          }
+          console.log(
+            `start vs current ${this.startTime} vs ${this.audioCtx.currentTime} duration: ${audioBuffer.duration}`
+          );
+          bufferSource.buffer = audioBuffer;
+          // feed the samples into the fftNode - which will analyze the samples and then pass them onto the destination
+          bufferSource.connect(this.fftNode);
+          // this is when the samples should start playing
+          bufferSource.start(this.startTime);
+          // this is when the next set of samples should start playing
+          this.startTime += audioBuffer.duration;
+        }
+      }
+
+      // start streaming audio from the websocket
+      function startStreaming() {
+        console.log("Starting stream");
+        const player = new Player();
+        const frequencyScope = new FrequencyScope(player.fftNode);
+        // start the visualisation
+        frequencyScope.draw();
+        // open a websocket connection
+        const socket = new WebSocket("ws://microphone.local/audio_stream");
+        socket.binaryType = "arraybuffer";
+        socket.onopen = function () {
+          console.log("WebSocket opened");
+        };
+        socket.onmessage = function (message) {
+          player.addSamples(message.data);
+        };
+        socket.onclose = function () {
+          console.log("WebSocket closed");
+          player = null;
+          frequencyScope = null;
+        };
+      }
+    </script>
+  </body>
+</html>
