@@ -4,6 +4,8 @@ This is a slight rework of the headset profile handsfree demo from here: https:/
 
 I've added in support for microphone input and pulled the speaker output into the demo code so that it can be more easily customised.
 
+I'll try and clean this code up further, but I would not recommend trying to use this code unless you really know what you are doing and know how to use the esp-idf.
+
 # Setup
 
 You'll need the esp-idf setup. Follow the instructions here: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/
