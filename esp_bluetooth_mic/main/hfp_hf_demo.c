@@ -140,7 +140,7 @@ static void show_usage(void)
     printf("d - query network operator                 | D - Enable HFP AG registration status update via bitmap(IIA)\n");
     printf("f - answer incoming call                   | F - Hangup call\n");
     printf("g - query network operator name            | G - reject incoming call\n");
-    printf("i - dial 1234567                           | I - dial 7654321\n");
+    printf("i - dial 123                               | I - dial 123\n");
     printf("j - dial #1                                | J - dial #99\n");
     printf("o - Set speaker volume to 0  (minimum)     | O - Set speaker volume to 9  (default)\n");
     printf("p - Set speaker volume to 12 (higher)      | P - Set speaker volume to 15 (maximum)\n");
@@ -265,13 +265,13 @@ static void stdin_process(char c)
         break;
     case 'i':
         log_info("USER:\'%c\'", cmd);
-        printf("Dial 1234567\n");
-        hfp_hf_dial_number(acl_handle, "1234567");
+        printf("Dial 123\n");
+        hfp_hf_dial_number(acl_handle, "123");
         break;
     case 'I':
         log_info("USER:\'%c\'", cmd);
-        printf("Dial 7654321\n");
-        hfp_hf_dial_number(acl_handle, "7654321");
+        printf("Dial 123\n");
+        hfp_hf_dial_number(acl_handle, "123");
         break;
     case 'j':
         log_info("USER:\'%c\'", cmd);

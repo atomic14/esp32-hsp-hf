@@ -44,6 +44,7 @@
 #include "hci_dump.h"
 #include "hci_dump_embedded_stdout.h"
 #include "microphone.h"
+#include "speaker.h"
 
 #include <stddef.h>
 
@@ -57,11 +58,9 @@ int app_main(void)
     // Configure BTstack for ESP32 VHCI Controller
     btstack_init();
 
-    // setup the audio source
+    // setup the audio sink and audio source - this overrides what was set in btstack_init()
     btstack_audio_source_set_instance(btstack_audio_esp32_source_get_instance());
-    // turn off the audio sink as it conflicts with the microphone I2S settings (pins overlap)
-    // NOTE this requires a few changes in the demo code as it assumes if there is no output then there is no input...
-    btstack_audio_sink_set_instance(NULL);
+    btstack_audio_sink_set_instance(btstack_audio_esp32_sink_get_instance());
 
     // Setup example
     btstack_main(0, NULL);
