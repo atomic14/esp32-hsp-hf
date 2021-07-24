@@ -1,3 +1,5 @@
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z734F5Y)
+
 # Intro
 
 This is a slight rework of the headset profile handsfree demo from here: https://github.com/bluekitchen/btstack
