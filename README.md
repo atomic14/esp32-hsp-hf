@@ -2,6 +2,10 @@
 
 # Intro
 
+You can watch a video of this working here: https://youtu.be/0jR-QNTfydA at around 4:23
+
+[![Demo Video](https://img.youtube.com/vi/0jR-QNTfydA/0.jpg)](https://www.youtube.com/watch?v=0jR-QNTfydA)
+
 This is a slight rework of the headset profile handsfree demo from here: https://github.com/bluekitchen/btstack
 
 I've added in support for microphone input and pulled the speaker output into the demo code so that it can be more easily customised.
@@ -16,7 +20,7 @@ You'll also need the [bluekitchen/btstack](https://github.com/bluekitchen/btstac
 
 Follow the instructions here: https://github.com/bluekitchen/btstack/tree/master/port/esp32
 
-Change the value in `hfp_hf_demo.c` for `device_addr_string` to match the device you want to connect to (use the mac address of the bluetooth interface)
+Change the value in `hfp_hf_demo.c` for `device_addr_string` to match the device you want to connect to (use the mac address of the Bluetooth interface)
 
 ```
 static const char *device_addr_string = "08:c7:29:06:84:27";
@@ -30,13 +34,13 @@ In the `esp-idf` folder run:
 . ./export.sh
 ```
 
-Then in the projects folder do:
+Then in the projects folder run:
 
 ```
 make
 ```
 
-Then to flash do - you may not need the ESPPORT - it depends on if your device is appearing somewhere standard
+Then to flash, run this command:
 
 ```
 ESPPORT=/dev/tty.SLAB_USBtoUART make flash

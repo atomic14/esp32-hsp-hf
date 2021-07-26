@@ -78,7 +78,7 @@ static void fill_buffer(void)
       // gain doesn't seem to be wired up
       // buffer[i] = buffer[i] * sink_gain;
       // seems to be exceptionally loud so we scale it down
-      buffer[i] = buffer[i] * 0.1;
+      buffer[i] = buffer[i] * 0.5;
     }
     i2s_write(I2S_SPEAKER_DEVICE, buffer, DMA_BUFFER_SAMPLES * sink_channels * sizeof(int16_t), &bytes_written, portMAX_DELAY);
   }
